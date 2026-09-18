@@ -30,9 +30,10 @@ def escanear(base_dir):
     if not base.exists():
         print(f"No se encuentra: {base_dir}")
         sys.exit(1)
+    EXTENSIONES = ('.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp')
     for carpeta in sorted(base.iterdir()):
         if carpeta.is_dir() and not carpeta.name.startswith('.'):
-            pdfs = sorted([f.name for f in carpeta.iterdir() if f.is_file() and f.suffix.lower() == '.pdf'])
+            pdfs = sorted([f.name for f in carpeta.iterdir() if f.is_file() and f.suffix.lower() in EXTENSIONES])
             if pdfs:
                 proveedores[carpeta.name] = pdfs
     return proveedores
@@ -216,6 +217,16 @@ def icono_html(proveedor):
     return "&#128295;"
 
 
+def get_file_icon(filename):
+    """Return appropriate icon based on file extension"""
+    ext = Path(filename).suffix.lower()
+    if ext == '.pdf':
+        return '&#128196;'
+    elif ext in ('.jpg', '.jpeg', '.png', '.gif', '.webp'):
+        return '&#128247;'
+    return '&#128196;'
+
+
 def extraer_obra(nombre_pdf):
     """Extrae la obra del nombre del PDF, e.g. 'MOSQUITERAS  (FORMENTERA 14)' -> 'FORMENTERA 14'"""
     match = re.search(r'\(([^)]+)\)', nombre_pdf)
@@ -230,7 +241,8 @@ def generar(proveedores):
     todas_las_obras = set()
     for pdfs in proveedores.values():
         for pdf in pdfs:
-            todas_las_obras.add(extraer_obra(pdf.replace(".pdf", "").strip()))
+            name_no_ext = Path(pdf).stem.strip()
+            todas_las_obras.add(extraer_obra(name_no_ext))
     obras_ordenadas = sorted(todas_las_obras)
 
     cards = ""
@@ -238,7 +250,7 @@ def generar(proveedores):
         items = ""
         for pdf in pdfs:
             url = f"PROVEEDORES/{proveedor}/{pdf}".replace("\\", "/")
-            name = pdf.replace(".pdf", "").strip()
+            name = Path(pdf).stem.strip()
             obra = extraer_obra(name)
             url_enc = "/".join(quote(p, safe="") for p in url.split("/"))
             safe_name = name.replace("'", "\\'")
@@ -246,7 +258,7 @@ def generar(proveedores):
             safe_obra = obra.replace("'", "\\'")
             items += f'''
           <div class="pdf-item" onclick="abrirPDF('{url_enc}','{safe_name}','{safe_prov}')" data-pdf="{url_enc}" data-obra="{safe_obra}">
-            <div class="pdf-icon">&#128196;</div>
+            <div class="pdf-icon">{get_file_icon(pdf)}</div>
             <div class="pdf-info">
               <div class="pdf-name">{name}</div>
               <div class="pdf-size">{obra}</div>
@@ -415,8 +427,8 @@ def generar(proveedores):
 <script>
 var allPDFs=[],currentIndex=-1;
 document.querySelectorAll('.pdf-item').forEach(function(el){allPDFs.push({url:el.getAttribute('data-pdf'),name:el.querySelector('.pdf-name').textContent,provider:el.closest('.proveedor-card').querySelector('.proveedor-name').textContent,element:el})});
-function abrirPDF(url,name,provider){document.querySelectorAll('.pdf-item').forEach(function(e){e.classList.remove('active')});var item=document.querySelector('.pdf-item[data-pdf="'+url+'"]');if(item)item.classList.add('active');currentIndex=allPDFs.findIndex(function(p){return p.url===url});document.getElementById('viewer-overlay').classList.add('visible');document.body.style.overflow='hidden';document.getElementById('viewer-name').textContent=name;document.getElementById('viewer-provider').textContent=provider;document.getElementById('viewer-frame').src=url;document.getElementById('btn-external').href=url;updateNav()}
-function cerrarPDF(){document.getElementById('viewer-overlay').classList.remove('visible');document.body.style.overflow='';document.getElementById('viewer-frame').src='';document.querySelectorAll('.pdf-item').forEach(function(e){e.classList.remove('active')});currentIndex=-1}
+function abrirPDF(url,name,provider){document.querySelectorAll('.pdf-item').forEach(function(e){e.classList.remove('active')});var item=document.querySelector('.pdf-item[data-pdf="'+url+'"]');if(item)item.classList.add('active');currentIndex=allPDFs.findIndex(function(p){return p.url===url});document.getElementById('viewer-overlay').classList.add('visible');document.body.style.overflow='hidden';document.getElementById('viewer-name').textContent=name;document.getElementById('viewer-provider').textContent=provider;var isImage=/\.(jpg|jpeg|png|gif|webp)$/i.test(url);var frame=document.getElementById('viewer-frame');if(isImage){frame.style.background='white';frame.srcdoc='<html><body style="margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f0f0f0"><img src="'+url+'" style="max-width:100%;max-height:100vh;object-fit:contain"></body></html>'}else{frame.style.background='#525659';frame.srcdoc='';frame.src=url}document.getElementById('btn-external').href=url;updateNav()}
+function cerrarPDF(){document.getElementById('viewer-overlay').classList.remove('visible');document.body.style.overflow='';var frame=document.getElementById('viewer-frame');frame.src='';frame.srcdoc='';frame.style.background='#525659';document.querySelectorAll('.pdf-item').forEach(function(e){e.classList.remove('active')});currentIndex=-1}
 function navPDF(dir){if(currentIndex<0)return;var next=currentIndex+dir;if(next<0||next>=allPDFs.length)return;var p=allPDFs[next];abrirPDF(p.url,p.name,p.provider);var card=p.element.closest('.proveedor-card');card.querySelector('.proveedor-body').classList.add('open');card.querySelector('.proveedor-toggle').classList.add('open')}
 function updateNav(){document.getElementById('btn-prev').disabled=currentIndex<=0;document.getElementById('btn-next').disabled=currentIndex>=allPDFs.length-1;document.getElementById('viewer-counter').textContent=(currentIndex+1)+'/'+allPDFs.length}
 document.addEventListener('keydown',function(e){if(e.key==='Escape')cerrarPDF();if(e.key==='ArrowLeft')navPDF(-1);if(e.key==='ArrowRight')navPDF(1);if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();document.getElementById('searchInput').focus()}});
