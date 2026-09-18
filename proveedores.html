@@ -70,6 +70,7 @@ body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#f0f2f5;
 .viewer-btn-nav:disabled{opacity:.3;cursor:default}
 .viewer-frame{flex:1;border:none;background:#525659}
 @media(max-width:600px){.header{padding:20px}.header h1{font-size:1.3rem}.container,.search-bar{padding:0 16px}.viewer-bar{padding:10px 16px}.viewer-btn{padding:6px 10px;font-size:.8rem}}
+.local-hint{text-align:center;background:#fff3e8;color:#D4742C;padding:12px 20px;border-radius:10px;margin-bottom:20px;font-size:.85rem;font-weight:600;display:none}
 </style>
 </head>
 <body>
@@ -82,7 +83,9 @@ body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#f0f2f5;
 <input type="text" id="searchInput" placeholder="Buscar proveedor o presupuesto..." oninput="filtrar()">
 <button class="clear-btn" id="clearBtn" onclick="limpiarBusqueda()">&#10005;</button>
 </div></div>
-<div class="container"><div class="toolbar">
+<div class="container">
+<div class="local-hint" id="localHint">&#9888; Estas en modo local. Los PDFs se abren en una pestana nueva. Para verlos integrados, ejecuta ver.bat</div>
+<div class="toolbar">
 <button class="toolbar-btn" onclick="expandirTodo()">&#128194; Expandir todo</button>
 <button class="toolbar-btn" onclick="colapsarTodo()">&#128193; Colapsar todo</button>
 </div><div class="filter-bar"><span class="filter-label">Obra:</span>
@@ -143,9 +146,9 @@ body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#f0f2f5;
 <button class="viewer-btn viewer-btn-close" onclick="cerrarPDF()" title="Cerrar">&times; Cerrar</button>
 </div></div><iframe id="viewer-frame" class="viewer-frame"></iframe></div>
 <script>
-var allPDFs=[],currentIndex=-1;
+var allPDFs=[],currentIndex=-1,isLocal=(location.protocol==='file:');
 document.querySelectorAll('.pdf-item').forEach(function(el){allPDFs.push({url:el.getAttribute('data-pdf'),name:el.querySelector('.pdf-name').textContent,provider:el.closest('.proveedor-card').querySelector('.proveedor-name').textContent,element:el})});
-function abrirPDF(url,name,provider){document.querySelectorAll('.pdf-item').forEach(function(e){e.classList.remove('active')});var item=document.querySelector('.pdf-item[data-pdf="'+url+'"]');if(item)item.classList.add('active');currentIndex=allPDFs.findIndex(function(p){return p.url===url});document.getElementById('viewer-overlay').classList.add('visible');document.body.style.overflow='hidden';document.getElementById('viewer-name').textContent=name;document.getElementById('viewer-provider').textContent=provider;var ext=url.split('.').pop().toLowerCase();var isImage=(ext==='jpg'||ext==='jpeg'||ext==='png'||ext==='gif'||ext==='webp');var frame=document.getElementById('viewer-frame');if(isImage){frame.style.background='white';frame.srcdoc='<html><body style="margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f0f0f0"><img src="'+url+'" style="max-width:100%;max-height:100vh;object-fit:contain"></body></html>'}else{frame.style.background='#525659';frame.srcdoc='';frame.src=url}document.getElementById('btn-external').href=url;updateNav()}
+function abrirPDF(url,name,provider){document.querySelectorAll('.pdf-item').forEach(function(e){e.classList.remove('active')});var item=document.querySelector('.pdf-item[data-pdf="'+url+'"]');if(item)item.classList.add('active');currentIndex=allPDFs.findIndex(function(p){return p.url===url});if(isLocal){window.open(url,'_blank');return}document.getElementById('viewer-overlay').classList.add('visible');document.body.style.overflow='hidden';document.getElementById('viewer-name').textContent=name;document.getElementById('viewer-provider').textContent=provider;var ext=url.split('.').pop().toLowerCase();var isImage=(ext==='jpg'||ext==='jpeg'||ext==='png'||ext==='gif'||ext==='webp');var frame=document.getElementById('viewer-frame');if(isImage){frame.style.background='white';frame.srcdoc='<html><body style="margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f0f0f0"><img src="'+url+'" style="max-width:100%;max-height:100vh;object-fit:contain"></body></html>'}else{frame.style.background='#525659';frame.srcdoc='';frame.src=url}document.getElementById('btn-external').href=url;updateNav()}
 function cerrarPDF(){document.getElementById('viewer-overlay').classList.remove('visible');document.body.style.overflow='';var f=document.getElementById('viewer-frame');f.src='';f.srcdoc='';f.style.background='#525659';document.querySelectorAll('.pdf-item').forEach(function(e){e.classList.remove('active')});currentIndex=-1}
 function navPDF(dir){if(currentIndex<0)return;var n=currentIndex+dir;if(n<0||n>=allPDFs.length)return;var p=allPDFs[n];abrirPDF(p.url,p.name,p.provider);var c=p.element.closest('.proveedor-card');c.querySelector('.proveedor-body').classList.add('open');c.querySelector('.proveedor-toggle').classList.add('open')}
 function updateNav(){document.getElementById('btn-prev').disabled=currentIndex<=0;document.getElementById('btn-next').disabled=currentIndex>=allPDFs.length-1;document.getElementById('viewer-counter').textContent=(currentIndex+1)+'/'+allPDFs.length}
@@ -158,6 +161,7 @@ var obraActual='todas';
 function filtrarObra(obra,btn){obraActual=obra;document.querySelectorAll('.filter-pill').forEach(function(p){p.classList.remove('active')});btn.classList.add('active');filtrar()}
 function filtrar(){var q=document.getElementById('searchInput').value.toLowerCase().trim();document.getElementById('clearBtn').classList.toggle('visible',q.length>0);var v=0;document.querySelectorAll('.pdf-item').forEach(function(item){var name=item.querySelector('.pdf-name').textContent.toLowerCase();var prov=item.closest('.proveedor-card').querySelector('.proveedor-name').textContent.toLowerCase();var obra=item.getAttribute('data-obra')||'';var matchSearch=q===''||name.includes(q)||prov.includes(q);var matchObra=obraActual==='todas'||obra===obraActual;if(matchSearch&&matchObra){item.style.display='flex';item.classList.remove('obra-hidden')}else{item.style.display='none';item.classList.add('obra-hidden')}});document.querySelectorAll('.proveedor-card').forEach(function(card){var pdfItems=card.querySelectorAll('.pdf-item');var visibles=0;pdfItems.forEach(function(item){if(!item.classList.contains('obra-hidden'))visibles++});var total=pdfItems.length;var countEl=card.querySelector('.proveedor-count');if(visibles===total){countEl.textContent=total+' presupuesto'+(total!==1?'s':'')}else{countEl.textContent=visibles+'/'+total+' presupuestos'}if(visibles>0||(q===''&&obraActual==='todas')){card.classList.remove('hidden','obra-hidden');v++;if(q.length>0||obraActual!=='todas'){card.querySelector('.proveedor-body').classList.add('open');card.querySelector('.proveedor-toggle').classList.add('open')}}else{card.classList.add('hidden')}});document.getElementById('emptyState').style.display=v===0?'block':'none'}
 function limpiarBusqueda(){document.getElementById('searchInput').value='';obraActual='todas';document.querySelectorAll('.filter-pill').forEach(function(p){p.classList.remove('active')});document.querySelector('.filter-pill').classList.add('active');filtrar()}
+if(isLocal)document.getElementById("localHint").style.display="block";
 </script>
 </body>
 </html>

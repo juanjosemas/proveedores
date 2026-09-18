@@ -42,6 +42,7 @@ git add .gitignore
 git add generar_html.py
 git add actualizar.bat
 git add subir_a_github.bat
+git add ver.bat
 
 echo.
 echo ============================================
