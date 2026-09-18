@@ -83,8 +83,8 @@
   <div class="header-content">
     <h1>&#128203; Presupuestos por Proveedor</h1>
     <div class="header-stats">
-      <div class="stat"><div class="stat-value">12</div><div class="stat-label">Proveedores</div></div>
-      <div class="stat"><div class="stat-value">31</div><div class="stat-label">Presupuestos</div></div>
+      <div class="stat"><div class="stat-value">13</div><div class="stat-label">Proveedores</div></div>
+      <div class="stat"><div class="stat-value">32</div><div class="stat-label">Presupuestos</div></div>
     </div>
   </div>
 </div>
@@ -112,6 +112,8 @@
     <button class="filter-pill" onclick="filtrarObra('FORMENTERA 12', this)">FORMENTERA 12</button>
 
     <button class="filter-pill" onclick="filtrarObra('FORMENTERA 14', this)">FORMENTERA 14</button>
+
+    <button class="filter-pill" onclick="filtrarObra('General', this)">General</button>
 
     <button class="filter-pill" onclick="filtrarObra('PLAZA CIRCULAR', this)">PLAZA CIRCULAR</button>
   </div>
@@ -527,15 +529,39 @@
     <div class="proveedor-card" data-index="11">
       <div class="proveedor-header" onclick="toggleProveedor(11)">
         <div class="proveedor-left">
+          <span class="proveedor-icon">&#128295;</span>
+          <div class="proveedor-info">
+            <h3 class="proveedor-name">PRUEBA</h3>
+            <span class="proveedor-count">1 presupuesto</span>
+          </div>
+        </div>
+        <div class="proveedor-toggle" id="toggle-11">&#9660;</div>
+      </div>
+      <div class="proveedor-body" id="body-11">
+        <div class="pdf-list">
+          <div class="pdf-item" onclick="abrirPDF('PROVEEDORES/PRUEBA/TIPO%20DE%20HORMIGON%20PEDIDO%20PARA%20CASTILLO%20DE%20ELDA.pdf','TIPO DE HORMIGON PEDIDO PARA CASTILLO DE ELDA','PRUEBA')" data-pdf="PROVEEDORES/PRUEBA/TIPO%20DE%20HORMIGON%20PEDIDO%20PARA%20CASTILLO%20DE%20ELDA.pdf" data-obra="General">
+            <div class="pdf-icon">&#128196;</div>
+            <div class="pdf-info">
+              <div class="pdf-name">TIPO DE HORMIGON PEDIDO PARA CASTILLO DE ELDA</div>
+              <div class="pdf-size">General</div>
+            </div>
+            <div class="pdf-arrow">&#128196; Abrir</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="proveedor-card" data-index="12">
+      <div class="proveedor-header" onclick="toggleProveedor(12)">
+        <div class="proveedor-left">
           <span class="proveedor-icon"><img src="data:image/png;base64,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" style="width:40px;height:40px;object-fit:contain;border-radius:6px;"></span>
           <div class="proveedor-info">
             <h3 class="proveedor-name">SALTOKI</h3>
             <span class="proveedor-count">2 presupuestos</span>
           </div>
         </div>
-        <div class="proveedor-toggle" id="toggle-11">&#9660;</div>
+        <div class="proveedor-toggle" id="toggle-12">&#9660;</div>
       </div>
-      <div class="proveedor-body" id="body-11">
+      <div class="proveedor-body" id="body-12">
         <div class="pdf-list">
           <div class="pdf-item" onclick="abrirPDF('PROVEEDORES/SALTOKI/SANITARIOS%20%20%28PLAZA%20CIRCULAR%29%20%2026-05-2026.pdf','SANITARIOS  (PLAZA CIRCULAR)  26-05-2026','SALTOKI')" data-pdf="PROVEEDORES/SALTOKI/SANITARIOS%20%20%28PLAZA%20CIRCULAR%29%20%2026-05-2026.pdf" data-obra="PLAZA CIRCULAR">
             <div class="pdf-icon">&#128196;</div>

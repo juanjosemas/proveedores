@@ -20,7 +20,7 @@ if errorlevel 1 (
 )
 echo.
 
-REM -- Paso 2: Verificar que git esta configurado --
+REM -- Paso 2: Verificar repositorio git --
 echo [2/3] Verificando repositorio git...
 git status >nul 2>&1
 if %errorlevel% neq 0 (
@@ -32,7 +32,7 @@ if %errorlevel% neq 0 (
 echo OK: Repositorio git listo.
 echo.
 
-REM -- Paso 3: Anadir archivos y ver cambios --
+REM -- Paso 3: Anadir archivos y mostrar cambios --
 echo [3/3] Preparando archivos para GitHub...
 git add proveedores.html
 git add icons/
@@ -43,33 +43,14 @@ git add generar_html.py
 git add actualizar.bat
 git add subir_a_github.bat
 
-REM -- Comprobar si hay cambios para commitear --
-git diff --cached --stat >nul 2>&1
-if %errorlevel% neq 0 (
-    REM Hay cambios staged
-    goto :hayCambios
-)
-
-git diff --stat >nul 2>&1
-if %errorlevel% neq 0 (
-    REM Hay cambios unstaged
-    goto :hayCambios
-)
-
-REM -- No hay cambios --
-echo.
-echo No hay cambios que subir. Todo esta actualizado en GitHub.
-echo.
-pause
-exit /b 0
-
-:hayCambios
 echo.
 echo ============================================
 echo   ARCHIVOS CAMBIADOS:
 echo ============================================
 git status --short
 echo.
+
+REM -- Preguntar si quiere subir --
 set /p "SUBIR=Quieres subir estos cambios a GitHub? (S/N): "
 if /i not "%SUBIR%"=="S" (
     echo.
@@ -79,18 +60,20 @@ if /i not "%SUBIR%"=="S" (
     exit /b 0
 )
 
+REM -- Commitear (si no hay nada, git lo dira) --
 echo.
-echo Subiendo a GitHub...
-git commit -m "Actualizacion de presupuestos"
-
+echo Creando commit...
+git commit -m "Actualizacion de presupuestos" 2>nul
 if %errorlevel% neq 0 (
     echo.
-    echo ERROR: No se pudo crear el commit.
+    echo No hay cambios nuevos para commitear.
     echo.
     pause
-    exit /b 1
+    exit /b 0
 )
 
+REM -- Subir a GitHub --
+echo Subiendo a GitHub...
 git push -u origin main
 
 if %errorlevel% neq 0 (
