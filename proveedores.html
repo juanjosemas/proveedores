@@ -21,6 +21,18 @@
   .search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); font-size: 1.2rem; color: #999; }
   .clear-btn { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 1.2rem; color: #999; cursor: pointer; display: none; }
   .clear-btn.visible { display: block; }
+  .search-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 2px solid #e0e0e0; border-top: none; border-radius: 0 0 12px 12px; max-height: 320px; overflow-y: auto; z-index: 100; display: none; box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+  .search-dropdown.visible { display: block; }
+  .dropdown-section { padding: 8px 16px 4px; font-size: 0.72rem; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: 0.5px; }
+  .dropdown-item { display: flex; align-items: center; gap: 12px; padding: 10px 16px; cursor: pointer; transition: background 0.15s; }
+  .dropdown-item:hover { background: #fff8f0; }
+  .dropdown-item-icon { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; flex-shrink: 0; font-size: 1.1rem; }
+  .dropdown-item-icon.prov { background: #e8f4fd; }
+  .dropdown-item-icon.doc { background: #fee2e2; }
+  .dropdown-item-text { flex: 1; min-width: 0; }
+  .dropdown-item-name { font-weight: 600; font-size: 0.88rem; color: #2B3A4E; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dropdown-item-sub { font-size: 0.75rem; color: #999; }
+  .dropdown-item-name mark { background: #fff3e8; color: #D4742C; border-radius: 2px; padding: 0 1px; }
   .container { max-width: 1100px; margin: 24px auto; padding: 0 40px 40px; }
   .proveedor-card { background: white; border-radius: 14px; margin-bottom: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); overflow: hidden; transition: box-shadow 0.3s; }
   .proveedor-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
@@ -92,8 +104,9 @@
 <div class="search-bar">
   <div class="search-wrapper">
     <span class="search-icon">&#128269;</span>
-    <input type="text" id="searchInput" placeholder="Buscar proveedor o presupuesto..." oninput="filtrar()">
+    <input type="text" id="searchInput" placeholder="Buscar proveedor o presupuesto..." oninput="filtrar();actualizarDropdown(this.value)" onfocus="mostrarDropdown()" autocomplete="off">
     <button class="clear-btn" id="clearBtn" onclick="limpiarBusqueda()">&#10005;</button>
+    <div class="search-dropdown" id="searchDropdown"></div>
   </div>
 </div>
 
@@ -104,17 +117,13 @@
   </div>
   <div class="filter-bar">
     <span class="filter-label">Obra:</span>
+
     <button class="filter-pill active" onclick="filtrarObra('todas', this)">Todas</button>
     <button class="filter-pill" onclick="filtrarObra('ALBERTO Y EVA', this)">ALBERTO Y EVA</button>
-
     <button class="filter-pill" onclick="filtrarObra('CALLE CARTAGENA', this)">CALLE CARTAGENA</button>
-
     <button class="filter-pill" onclick="filtrarObra('FORMENTERA 12', this)">FORMENTERA 12</button>
-
     <button class="filter-pill" onclick="filtrarObra('FORMENTERA 14', this)">FORMENTERA 14</button>
-
     <button class="filter-pill" onclick="filtrarObra('General', this)">General</button>
-
     <button class="filter-pill" onclick="filtrarObra('PLAZA CIRCULAR', this)">PLAZA CIRCULAR</button>
   </div>
   <div id="proveedoresList">
@@ -613,7 +622,7 @@
 <script>
 var allPDFs=[],currentIndex=-1;
 document.querySelectorAll('.pdf-item').forEach(function(el){allPDFs.push({url:el.getAttribute('data-pdf'),name:el.querySelector('.pdf-name').textContent,provider:el.closest('.proveedor-card').querySelector('.proveedor-name').textContent,element:el})});
-function abrirPDF(url,name,provider){document.querySelectorAll('.pdf-item').forEach(function(e){e.classList.remove('active')});var item=document.querySelector('.pdf-item[data-pdf="'+url+'"]');if(item)item.classList.add('active');currentIndex=allPDFs.findIndex(function(p){return p.url===url});document.getElementById('viewer-overlay').classList.add('visible');document.body.style.overflow='hidden';document.getElementById('viewer-name').textContent=name;document.getElementById('viewer-provider').textContent=provider;var isImage=/\.(jpg|jpeg|png|gif|webp)$/i.test(url);var frame=document.getElementById('viewer-frame');if(isImage){frame.style.background='white';frame.srcdoc='<html><body style="margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f0f0f0"><img src="'+url+'" style="max-width:100%;max-height:100vh;object-fit:contain"></body></html>'}else{frame.style.background='#525659';frame.srcdoc='';frame.src=url}document.getElementById('btn-external').href=url;updateNav()}
+function abrirPDF(url,name,provider){document.querySelectorAll('.pdf-item').forEach(function(e){e.classList.remove('active')});var item=document.querySelector('.pdf-item[data-pdf="'+url+'"]');if(item)item.classList.add('active');currentIndex=allPDFs.findIndex(function(p){return p.url===url});document.getElementById('viewer-overlay').classList.add('visible');document.body.style.overflow='hidden';document.getElementById('viewer-name').textContent=name;document.getElementById('viewer-provider').textContent=provider;var ext=url.split('.').pop().toLowerCase();var isImage=(ext==='jpg'||ext==='jpeg'||ext==='png'||ext==='gif'||ext==='webp');var frame=document.getElementById('viewer-frame');if(isImage){frame.style.background='white';frame.srcdoc='<html><body style="margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f0f0f0"><img src="'+url+'" style="max-width:100%;max-height:100vh;object-fit:contain"></body></html>'}else{frame.style.background='#525659';frame.srcdoc='';frame.src=url}document.getElementById('btn-external').href=url;updateNav()}
 function cerrarPDF(){document.getElementById('viewer-overlay').classList.remove('visible');document.body.style.overflow='';var frame=document.getElementById('viewer-frame');frame.src='';frame.srcdoc='';frame.style.background='#525659';document.querySelectorAll('.pdf-item').forEach(function(e){e.classList.remove('active')});currentIndex=-1}
 function navPDF(dir){if(currentIndex<0)return;var next=currentIndex+dir;if(next<0||next>=allPDFs.length)return;var p=allPDFs[next];abrirPDF(p.url,p.name,p.provider);var card=p.element.closest('.proveedor-card');card.querySelector('.proveedor-body').classList.add('open');card.querySelector('.proveedor-toggle').classList.add('open')}
 function updateNav(){document.getElementById('btn-prev').disabled=currentIndex<=0;document.getElementById('btn-next').disabled=currentIndex>=allPDFs.length-1;document.getElementById('viewer-counter').textContent=(currentIndex+1)+'/'+allPDFs.length}
@@ -624,10 +633,17 @@ function expandirTodo(){document.querySelectorAll('.proveedor-body').forEach(fun
 function colapsarTodo(){document.querySelectorAll('.proveedor-body').forEach(function(e){e.classList.remove('open')});document.querySelectorAll('.proveedor-toggle').forEach(function(e){e.classList.remove('open')})}
 var obraActual='todas';
 function filtrarObra(obra,btn){obraActual=obra;document.querySelectorAll('.filter-pill').forEach(function(p){p.classList.remove('active')});btn.classList.add('active');filtrar()}
-function filtrar(){var q=document.getElementById('searchInput').value.toLowerCase().trim();document.getElementById('clearBtn').classList.toggle('visible',q.length>0);var v=0;
-document.querySelectorAll('.pdf-item').forEach(function(item){var name=item.querySelector('.pdf-name').textContent.toLowerCase();var obra=item.getAttribute('data-obra')||'';var matchSearch=q===''||name.includes(q);var matchObra=obraActual==='todas'||obra===obraActual;if(matchSearch&&matchObra){item.style.display='flex';item.classList.remove('obra-hidden')}else{item.style.display='none';item.classList.add('obra-hidden')}});
-document.querySelectorAll('.proveedor-card').forEach(function(card){var nombre=card.querySelector('.proveedor-name').textContent.toLowerCase();var pdfItems=card.querySelectorAll('.pdf-item');var visibles=0;pdfItems.forEach(function(item){if(!item.classList.contains('obra-hidden'))visibles++});var total=pdfItems.length;var countEl=card.querySelector('.proveedor-count');if(visibles===total){countEl.textContent=total+' presupuesto'+(total!==1?'s':'')}else{countEl.textContent=visibles+'/'+total+' presupuestos'}if(visibles>0||(q===''&&obraActual==='todas')){card.classList.remove('hidden','obra-hidden');v++;if(q.length>0||obraActual!=='todas'){card.querySelector('.proveedor-body').classList.add('open');card.querySelector('.proveedor-toggle').classList.add('open')}}else{card.classList.add('hidden')}});
-document.getElementById('emptyState').style.display=v===0?'block':'none'}
-function limpiarBusqueda(){document.getElementById('searchInput').value='';obraActual='todas';document.querySelectorAll('.filter-pill').forEach(function(p){p.classList.remove('active')});document.querySelector('.filter-pill').classList.add('active');filtrar()}
+function filtrar(){var q=document.getElementById('searchInput').value.toLowerCase().trim();document.getElementById('clearBtn').classList.toggle('visible',q.length>0);var v=0;document.querySelectorAll('.pdf-item').forEach(function(item){var name=item.querySelector('.pdf-name').textContent.toLowerCase();var obra=item.getAttribute('data-obra')||'';var matchSearch=q===''||name.includes(q);var matchObra=obraActual==='todas'||obra===obraActual;if(matchSearch&&matchObra){item.style.display='flex';item.classList.remove('obra-hidden')}else{item.style.display='none';item.classList.add('obra-hidden')}});document.querySelectorAll('.proveedor-card').forEach(function(card){var pdfItems=card.querySelectorAll('.pdf-item');var visibles=0;pdfItems.forEach(function(item){if(!item.classList.contains('obra-hidden'))visibles++});var total=pdfItems.length;var countEl=card.querySelector('.proveedor-count');if(visibles===total){countEl.textContent=total+' presupuesto'+(total!==1?'s':'')}else{countEl.textContent=visibles+'/'+total+' presupuestos'}if(visibles>0||(q===''&&obraActual==='todas')){card.classList.remove('hidden','obra-hidden');v++;if(q.length>0||obraActual!=='todas'){card.querySelector('.proveedor-body').classList.add('open');card.querySelector('.proveedor-toggle').classList.add('open')}}else{card.classList.add('hidden')}});document.getElementById('emptyState').style.display=v===0?'block':'none'}
+function limpiarBusqueda(){document.getElementById('searchInput').value='';obraActual='todas';document.querySelectorAll('.filter-pill').forEach(function(p){p.classList.remove('active')});document.querySelector('.filter-pill').classList.add('active');filtrar();ocultarDropdown()}
+var provedoresNombres=[];document.querySelectorAll('.proveedor-card').forEach(function(c){provedoresNombres.push(c.querySelector('.proveedor-name').textContent)});
+function mostrarDropdown(){var q=document.getElementById('searchInput').value.trim();if(q.length>0)actualizarDropdown(q);else ocultarDropdown()}
+function ocultarDropdown(){setTimeout(function(){document.getElementById('searchDropdown').classList.remove('visible')},200)}
+function actualizarDropdown(q){var dd=document.getElementById('searchDropdown');var ql=q.toLowerCase();var provs=[];var docs=[];provedoresNombres.forEach(function(name,i){if(name.toLowerCase().indexOf(ql)!==-1)provs.push({name:name,idx:i})});document.querySelectorAll('.pdf-item').forEach(function(el){var name=el.querySelector('.pdf-name').textContent;if(name.toLowerCase().indexOf(ql)!==-1){var prov=el.closest('.proveedor-card').querySelector('.proveedor-name').textContent;var obra=el.getAttribute('data-obra')||'';var url=el.getAttribute('data-pdf');docs.push({name:name,prov:prov,obra:obra,url:url})}});if(provs.length===0&&docs.length===0){dd.classList.remove('visible');return}var html='';if(provs.length>0){html+='<div class="dropdown-section">Proveedores</div>';provs.slice(0,5).forEach(function(p){var h=p.name.replace(new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi'),'<mark>$1</mark>');html+='<div class="dropdown-item" data-prov-idx="'+p.idx+'"><div class="dropdown-item-icon prov">&#128188;</div><div class="dropdown-item-text"><div class="dropdown-item-name">'+h+'</div></div></div>'})}if(docs.length>0){html+='<div class="dropdown-section">Presupuestos</div>';docs.slice(0,8).forEach(function(d){var h=d.name.replace(new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi'),'<mark>$1</mark>');html+='<div class="dropdown-item" data-doc-url="'+d.url+'"><div class="dropdown-item-icon doc">&#128196;</div><div class="dropdown-item-text"><div class="dropdown-item-name">'+h+'</div><div class="dropdown-item-sub">'+d.prov+(d.obra!=='General'?' | '+d.obra:'')+'</div></div></div>'})}if(provs.length>5||docs.length>8){html+='<div class="dropdown-section" style="color:#D4742C;">...y mas resultados. Escribe mas para filtrar</div>'}dd.innerHTML=html;dd.classList.add('visible')}
+document.getElementById('searchDropdown').addEventListener('click',function(e){var item=e.target.closest('.dropdown-item');if(!item)return;var provIdx=item.getAttribute('data-prov-idx');var docUrl=item.getAttribute('data-doc-url');if(provIdx!==null){seleccionarProveedor(provedoresNombres[parseInt(provIdx)])}else if(docUrl!==null){seleccionarDocumento(docUrl)}});
+function seleccionarProveedor(name){document.getElementById('searchInput').value='';document.getElementById('searchDropdown').classList.remove('visible');document.querySelectorAll('.filter-pill').forEach(function(p){p.classList.remove('active')});document.querySelector('.filter-pill').classList.add('active');obraActual='todas';document.querySelectorAll('.pdf-item').forEach(function(item){item.style.display='flex';item.classList.remove('obra-hidden')});document.querySelectorAll('.proveedor-card').forEach(function(card){card.classList.remove('hidden','obra-hidden')});var showed=false;document.querySelectorAll('.proveedor-card').forEach(function(card){if(card.querySelector('.proveedor-name').textContent===name){card.classList.add('open');card.querySelector('.proveedor-body').classList.add('open');card.querySelector('.proveedor-toggle').classList.add('open');var total=card.querySelectorAll('.pdf-item').length;card.querySelector('.proveedor-count').textContent=total+' presupuesto'+(total!==1?'s':'');showed=true}else{card.classList.add('hidden')}});document.getElementById('emptyState').style.display=showed?'none':'block';document.getElementById('clearBtn').classList.remove('visible')}
+function seleccionarDocumento(url){document.getElementById('searchDropdown').classList.remove('visible');var item=document.querySelector('.pdf-item[data-pdf="'+url+'"]');if(item){var card=item.closest('.proveedor-card');card.querySelector('.proveedor-body').classList.add('open');card.querySelector('.proveedor-toggle').classList.add('open');var name=item.querySelector('.pdf-name').textContent;var prov=card.querySelector('.proveedor-name').textContent;abrirPDF(url,name,prov)}}
+document.getElementById('searchInput').addEventListener('blur',ocultarDropdown);
+document.getElementById('searchInput').addEventListener('focus',function(){var q=this.value.trim();if(q.length>0)mostrarDropdown()})
 </script>
-</body></html>
+</body>
+</html>
