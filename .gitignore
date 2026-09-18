@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Logs
+*.log
+*.log.err
+
+# Freebuff
+.freebuff/
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
