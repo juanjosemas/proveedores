@@ -7,7 +7,7 @@ echo ============================================
 echo.
 
 REM -- Paso 1: Generar el HTML --
-echo [1/3] Regenerando visor HTML...
+echo [1/4] Regenerando visor HTML...
 python "%~dp0generar_html.py"
 
 if errorlevel 1 (
@@ -21,7 +21,7 @@ if errorlevel 1 (
 echo.
 
 REM -- Paso 2: Verificar repositorio git --
-echo [2/3] Verificando repositorio git...
+echo [2/4] Verificando repositorio git...
 git status >nul 2>&1
 if %errorlevel% neq 0 (
     echo No es un repositorio git. Inicializando...
@@ -33,7 +33,7 @@ echo OK: Repositorio git listo.
 echo.
 
 REM -- Paso 3: Anadir archivos y mostrar cambios --
-echo [3/3] Preparando archivos para GitHub...
+echo [3/4] Preparando archivos para GitHub...
 git add proveedores.html
 git add icons/
 git add PROVEEDORES/
@@ -55,10 +55,9 @@ REM -- Preguntar si quiere subir --
 set /p "SUBIR=Quieres subir estos cambios a GitHub? (S/N): "
 if /i not "%SUBIR%"=="S" (
     echo.
-    echo Cancelado. No se ha subido nada.
+    echo OK, no se sube a GitHub.
     echo.
-    pause
-    exit /b 0
+    goto VER_LOCAL
 )
 
 REM -- Commitear (si no hay nada, git lo dira) --
@@ -69,8 +68,7 @@ if %errorlevel% neq 0 (
     echo.
     echo No hay cambios nuevos para commitear.
     echo.
-    pause
-    exit /b 0
+    goto VER_LOCAL
 )
 
 REM -- Subir a GitHub --
@@ -81,15 +79,32 @@ if %errorlevel% neq 0 (
     echo.
     echo ERROR: No se pudo subir a GitHub. Comprueba tu conexion.
     echo.
-    pause
-    exit /b 1
+    goto VER_LOCAL
 )
 
 echo.
 echo ============================================
-echo   LISTO! Todo actualizado en GitHub.
+echo   LISTO! Subido a GitHub.
 echo   Visible en 1-2 minutos en:
 echo   https://juanjosemas.github.io/proveedores/proveedores.html
 echo ============================================
 echo.
-pause
+
+:VER_LOCAL
+REM -- Paso 4: Preguntar si quiere ver localmente --
+echo [4/4] Ver presupuestos en el navegador?
+set /p "VER=Quieres abrir el visor ahora? (S/N): "
+if /i not "%VER%"=="S" (
+    echo.
+    echo Listo. Para ver despues, ejecuta ver.bat
+    echo.
+    pause
+    exit /b 0
+)
+
+echo.
+echo Abriendo servidor local y navegador...
+echo (Cierra esta ventana para detener el servidor)
+echo.
+start "" http://localhost:8765/proveedores.html
+python -m http.server 8765 --directory "%~dp0"
