@@ -172,10 +172,38 @@ def extraer_obra(nombre):
 
 def build_js():
     js = []
-    js.append("var allPDFs=[],currentIndex=-1,isLocal=(location.protocol==='file:');")
+    js.append("var allPDFs=[],currentIndex=-1;")
     js.append("document.querySelectorAll('.pdf-item').forEach(function(el){allPDFs.push({url:el.getAttribute('data-pdf'),name:el.querySelector('.pdf-name').textContent,provider:el.closest('.proveedor-card').querySelector('.proveedor-name').textContent,element:el})});")
-    # abrirPDF - detect file:// and open in new tab if local
-    js.append("""function abrirPDF(url,name,provider){document.querySelectorAll('.pdf-item').forEach(function(e){e.classList.remove('active')});var item=document.querySelector('.pdf-item[data-pdf="'+url+'"]');if(item)item.classList.add('active');currentIndex=allPDFs.findIndex(function(p){return p.url===url});if(isLocal){window.open(url,'_blank');return}document.getElementById('viewer-overlay').classList.add('visible');document.body.style.overflow='hidden';document.getElementById('viewer-name').textContent=name;document.getElementById('viewer-provider').textContent=provider;var ext=url.split('.').pop().toLowerCase();var isImage=(ext==='jpg'||ext==='jpeg'||ext==='png'||ext==='gif'||ext==='webp');var frame=document.getElementById('viewer-frame');if(isImage){frame.style.background='white';frame.srcdoc='<html><body style="margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f0f0f0"><img src="'+url+'" style="max-width:100%;max-height:100vh;object-fit:contain"></body></html>'}else{frame.style.background='#525659';frame.srcdoc='';frame.src=url}document.getElementById('btn-external').href=url;updateNav()}""")
+
+    # abrirPDF - always show inline viewer, fallback to tab on error
+    js.append("""function abrirPDF(url,name,provider){
+document.querySelectorAll('.pdf-item').forEach(function(e){e.classList.remove('active')});
+var item=document.querySelector(".pdf-item[data-pdf='"+url+"']");
+if(item)item.classList.add('active');
+currentIndex=allPDFs.findIndex(function(p){return p.url===url});
+document.getElementById('viewer-overlay').classList.add('visible');
+document.body.style.overflow='hidden';
+document.getElementById('viewer-name').textContent=name;
+document.getElementById('viewer-provider').textContent=provider;
+var ext=url.split('.').pop().toLowerCase();
+var isImage=(ext==='jpg'||ext==='jpeg'||ext==='png'||ext==='gif'||ext==='webp');
+var frame=document.getElementById('viewer-frame');
+frame.onerror=function(){
+  frame.onerror=null;
+  window.open(url,'_blank');
+};
+if(isImage){
+  frame.style.background='white';
+  frame.srcdoc='<html><body style="margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f0f0f0"><img src="'+url+'" style="max-width:100%;max-height:100vh;object-fit:contain"></body></html>';
+  frame.src='';
+}else{
+  frame.style.background='#525659';
+  frame.srcdoc='';
+  frame.src=url;
+}
+document.getElementById('btn-external').href=url;
+updateNav()}""")
+
     js.append("function cerrarPDF(){document.getElementById('viewer-overlay').classList.remove('visible');document.body.style.overflow='';var f=document.getElementById('viewer-frame');f.src='';f.srcdoc='';f.style.background='#525659';document.querySelectorAll('.pdf-item').forEach(function(e){e.classList.remove('active')});currentIndex=-1}")
     js.append("function navPDF(dir){if(currentIndex<0)return;var n=currentIndex+dir;if(n<0||n>=allPDFs.length)return;var p=allPDFs[n];abrirPDF(p.url,p.name,p.provider);var c=p.element.closest('.proveedor-card');c.querySelector('.proveedor-body').classList.add('open');c.querySelector('.proveedor-toggle').classList.add('open')}")
     js.append("function updateNav(){document.getElementById('btn-prev').disabled=currentIndex<=0;document.getElementById('btn-next').disabled=currentIndex>=allPDFs.length-1;document.getElementById('viewer-counter').textContent=(currentIndex+1)+'/'+allPDFs.length}")
@@ -186,7 +214,35 @@ def build_js():
     js.append("function colapsarTodo(){document.querySelectorAll('.proveedor-body').forEach(function(e){e.classList.remove('open')});document.querySelectorAll('.proveedor-toggle').forEach(function(e){e.classList.remove('open')})}")
     js.append("var obraActual='todas';")
     js.append("function filtrarObra(obra,btn){obraActual=obra;document.querySelectorAll('.filter-pill').forEach(function(p){p.classList.remove('active')});btn.classList.add('active');filtrar()}")
-    js.append("""function filtrar(){var q=document.getElementById('searchInput').value.toLowerCase().trim();document.getElementById('clearBtn').classList.toggle('visible',q.length>0);var v=0;document.querySelectorAll('.pdf-item').forEach(function(item){var name=item.querySelector('.pdf-name').textContent.toLowerCase();var prov=item.closest('.proveedor-card').querySelector('.proveedor-name').textContent.toLowerCase();var obra=item.getAttribute('data-obra')||'';var matchSearch=q===''||name.includes(q)||prov.includes(q);var matchObra=obraActual==='todas'||obra===obraActual;if(matchSearch&&matchObra){item.style.display='flex';item.classList.remove('obra-hidden')}else{item.style.display='none';item.classList.add('obra-hidden')}});document.querySelectorAll('.proveedor-card').forEach(function(card){var pdfItems=card.querySelectorAll('.pdf-item');var visibles=0;pdfItems.forEach(function(item){if(!item.classList.contains('obra-hidden'))visibles++});var total=pdfItems.length;var countEl=card.querySelector('.proveedor-count');if(visibles===total){countEl.textContent=total+' presupuesto'+(total!==1?'s':'')}else{countEl.textContent=visibles+'/'+total+' presupuestos'}if(visibles>0||(q===''&&obraActual==='todas')){card.classList.remove('hidden','obra-hidden');v++;if(q.length>0||obraActual!=='todas'){card.querySelector('.proveedor-body').classList.add('open');card.querySelector('.proveedor-toggle').classList.add('open')}}else{card.classList.add('hidden')}});document.getElementById('emptyState').style.display=v===0?'block':'none'}""")
+    js.append("""function filtrar(){var q=document.getElementById('searchInput').value.toLowerCase().trim();
+document.getElementById('clearBtn').classList.toggle('visible',q.length>0);
+var v=0;
+document.querySelectorAll('.pdf-item').forEach(function(item){
+  var name=item.querySelector('.pdf-name').textContent.toLowerCase();
+  var prov=item.closest('.proveedor-card').querySelector('.proveedor-name').textContent.toLowerCase();
+  var obra=item.getAttribute('data-obra')||'';
+  var matchSearch=q===''||name.includes(q)||prov.includes(q);
+  var matchObra=obraActual==='todas'||obra===obraActual;
+  if(matchSearch&&matchObra){item.style.display='flex';item.classList.remove('obra-hidden')}
+  else{item.style.display='none';item.classList.add('obra-hidden')}
+});
+document.querySelectorAll('.proveedor-card').forEach(function(card){
+  var pdfItems=card.querySelectorAll('.pdf-item');
+  var visibles=0;
+  pdfItems.forEach(function(item){if(!item.classList.contains('obra-hidden'))visibles++});
+  var total=pdfItems.length;
+  var countEl=card.querySelector('.proveedor-count');
+  if(visibles===total){countEl.textContent=total+' presupuesto'+(total!==1?'s':'')}
+  else{countEl.textContent=visibles+'/'+total+' presupuestos'}
+  if(visibles>0||(q===''&&obraActual==='todas')){
+    card.classList.remove('hidden','obra-hidden');v++;
+    if(q.length>0||obraActual!=='todas'){
+      card.querySelector('.proveedor-body').classList.add('open');
+      card.querySelector('.proveedor-toggle').classList.add('open')
+    }
+  }else{card.classList.add('hidden')}
+});
+document.getElementById('emptyState').style.display=v===0?'block':'none'}""")
     js.append("function limpiarBusqueda(){document.getElementById('searchInput').value='';obraActual='todas';document.querySelectorAll('.filter-pill').forEach(function(p){p.classList.remove('active')});document.querySelector('.filter-pill').classList.add('active');filtrar()}")
     return "\n".join(js)
 
@@ -301,7 +357,6 @@ def generar(proveedores):
     h.append('.viewer-btn-nav:disabled{opacity:.3;cursor:default}')
     h.append('.viewer-frame{flex:1;border:none;background:#525659}')
     h.append('@media(max-width:600px){.header{padding:20px}.header h1{font-size:1.3rem}.container,.search-bar{padding:0 16px}.viewer-bar{padding:10px 16px}.viewer-btn{padding:6px 10px;font-size:.8rem}}')
-    h.append('.local-hint{text-align:center;background:#fff3e8;color:#D4742C;padding:12px 20px;border-radius:10px;margin-bottom:20px;font-size:.85rem;font-weight:600;display:none}')
     h.append('</style>\n</head>\n<body>')
     h.append('<div class="header"><div class="header-content"><h1>&#128203; Presupuestos por Proveedor</h1><div class="header-stats">')
     h.append('<div class="stat"><div class="stat-value">' + str(total_p) + '</div><div class="stat-label">Proveedores</div></div>')
@@ -313,8 +368,6 @@ def generar(proveedores):
     h.append('<button class="clear-btn" id="clearBtn" onclick="limpiarBusqueda()">&#10005;</button>')
     h.append('</div></div>')
     h.append('<div class="container">')
-    # Hint for local users
-    h.append('<div class="local-hint" id="localHint">&#9888; Estas en modo local. Los PDFs se abren en una pestana nueva. Para verlos integrados, ejecuta ver.bat</div>')
     h.append('<div class="toolbar">')
     h.append('<button class="toolbar-btn" onclick="expandirTodo()">&#128194; Expandir todo</button>')
     h.append('<button class="toolbar-btn" onclick="colapsarTodo()">&#128193; Colapsar todo</button>')
@@ -335,9 +388,7 @@ def generar(proveedores):
     h.append('<a id="btn-external" href="#" target="_blank" class="viewer-btn viewer-btn-external" title="Abrir en pestana">&#128269; Pestana</a>')
     h.append('<button class="viewer-btn viewer-btn-close" onclick="cerrarPDF()" title="Cerrar">&times; Cerrar</button>')
     h.append('</div></div><iframe id="viewer-frame" class="viewer-frame"></iframe></div>')
-    # Add JS to show local hint
-    extra_js = '\nif(isLocal)document.getElementById("localHint").style.display="block";'
-    h.append('<script>\n' + js + extra_js + '\n</script>\n</body>\n</html>')
+    h.append('<script>\n' + js + '\n</script>\n</body>\n</html>')
     return "\n".join(h)
 
 
