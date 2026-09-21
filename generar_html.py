@@ -2,7 +2,7 @@
 """
 Generador HTML de Presupuestos por Proveedor
 Escanea PROVEEDORES/ y genera proveedores.html.
-Uso: python generar_html.py
+Funciona tanto local como en GitHub Pages.
 """
 import sys, io, re, zlib, base64
 from pathlib import Path
@@ -172,49 +172,13 @@ def extraer_obra(nombre):
 
 def build_js():
     js = []
-    js.append("var allPDFs=[],currentIndex=-1;")
-    js.append("document.querySelectorAll('.pdf-item').forEach(function(el){allPDFs.push({url:el.getAttribute('data-pdf'),name:el.querySelector('.pdf-name').textContent,provider:el.closest('.proveedor-card').querySelector('.proveedor-name').textContent,element:el})});")
-
-    # abrirPDF - always show inline viewer, fallback to tab on error
-    js.append("""function abrirPDF(url,name,provider){
-document.querySelectorAll('.pdf-item').forEach(function(e){e.classList.remove('active')});
-var item=document.querySelector(".pdf-item[data-pdf='"+url+"']");
-if(item)item.classList.add('active');
-currentIndex=allPDFs.findIndex(function(p){return p.url===url});
-document.getElementById('viewer-overlay').classList.add('visible');
-document.body.style.overflow='hidden';
-document.getElementById('viewer-name').textContent=name;
-document.getElementById('viewer-provider').textContent=provider;
-var ext=url.split('.').pop().toLowerCase();
-var isImage=(ext==='jpg'||ext==='jpeg'||ext==='png'||ext==='gif'||ext==='webp');
-var frame=document.getElementById('viewer-frame');
-frame.onerror=function(){
-  frame.onerror=null;
-  window.open(url,'_blank');
-};
-if(isImage){
-  frame.style.background='white';
-  frame.srcdoc='<html><body style="margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f0f0f0"><img src="'+url+'" style="max-width:100%;max-height:100vh;object-fit:contain"></body></html>';
-  frame.src='';
-}else{
-  frame.style.background='#525659';
-  frame.srcdoc='';
-  frame.src=url;
-}
-document.getElementById('btn-external').href=url;
-updateNav()}""")
-
-    js.append("function cerrarPDF(){document.getElementById('viewer-overlay').classList.remove('visible');document.body.style.overflow='';var f=document.getElementById('viewer-frame');f.src='';f.srcdoc='';f.style.background='#525659';document.querySelectorAll('.pdf-item').forEach(function(e){e.classList.remove('active')});currentIndex=-1}")
-    js.append("function navPDF(dir){if(currentIndex<0)return;var n=currentIndex+dir;if(n<0||n>=allPDFs.length)return;var p=allPDFs[n];abrirPDF(p.url,p.name,p.provider);var c=p.element.closest('.proveedor-card');c.querySelector('.proveedor-body').classList.add('open');c.querySelector('.proveedor-toggle').classList.add('open')}")
-    js.append("function updateNav(){document.getElementById('btn-prev').disabled=currentIndex<=0;document.getElementById('btn-next').disabled=currentIndex>=allPDFs.length-1;document.getElementById('viewer-counter').textContent=(currentIndex+1)+'/'+allPDFs.length}")
-    js.append("document.addEventListener('keydown',function(e){if(e.key==='Escape')cerrarPDF();if(e.key==='ArrowLeft')navPDF(-1);if(e.key==='ArrowRight')navPDF(1);if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();document.getElementById('searchInput').focus()}});")
-    js.append("document.getElementById('viewer-overlay').addEventListener('click',function(e){if(e.target===this)cerrarPDF()});")
+    js.append("var obraActual='todas';")
     js.append("function toggleProveedor(i){document.getElementById('body-'+i).classList.toggle('open');document.getElementById('toggle-'+i).classList.toggle('open')}")
     js.append("function expandirTodo(){document.querySelectorAll('.proveedor-body').forEach(function(e){e.classList.add('open')});document.querySelectorAll('.proveedor-toggle').forEach(function(e){e.classList.add('open')})}")
     js.append("function colapsarTodo(){document.querySelectorAll('.proveedor-body').forEach(function(e){e.classList.remove('open')});document.querySelectorAll('.proveedor-toggle').forEach(function(e){e.classList.remove('open')})}")
-    js.append("var obraActual='todas';")
     js.append("function filtrarObra(obra,btn){obraActual=obra;document.querySelectorAll('.filter-pill').forEach(function(p){p.classList.remove('active')});btn.classList.add('active');filtrar()}")
-    js.append("""function filtrar(){var q=document.getElementById('searchInput').value.toLowerCase().trim();
+    js.append("""function filtrar(){
+var q=document.getElementById('searchInput').value.toLowerCase().trim();
 document.getElementById('clearBtn').classList.toggle('visible',q.length>0);
 var v=0;
 document.querySelectorAll('.pdf-item').forEach(function(item){
@@ -223,27 +187,27 @@ document.querySelectorAll('.pdf-item').forEach(function(item){
   var obra=item.getAttribute('data-obra')||'';
   var matchSearch=q===''||name.includes(q)||prov.includes(q);
   var matchObra=obraActual==='todas'||obra===obraActual;
-  if(matchSearch&&matchObra){item.style.display='flex';item.classList.remove('obra-hidden')}
-  else{item.style.display='none';item.classList.add('obra-hidden')}
+  if(matchSearch&&matchObra){item.style.display='flex'}else{item.style.display='none'}
 });
 document.querySelectorAll('.proveedor-card').forEach(function(card){
   var pdfItems=card.querySelectorAll('.pdf-item');
   var visibles=0;
-  pdfItems.forEach(function(item){if(!item.classList.contains('obra-hidden'))visibles++});
+  pdfItems.forEach(function(item){if(item.style.display!=='none')visibles++});
   var total=pdfItems.length;
   var countEl=card.querySelector('.proveedor-count');
   if(visibles===total){countEl.textContent=total+' presupuesto'+(total!==1?'s':'')}
   else{countEl.textContent=visibles+'/'+total+' presupuestos'}
   if(visibles>0||(q===''&&obraActual==='todas')){
-    card.classList.remove('hidden','obra-hidden');v++;
+    card.style.display='';v++;
     if(q.length>0||obraActual!=='todas'){
       card.querySelector('.proveedor-body').classList.add('open');
       card.querySelector('.proveedor-toggle').classList.add('open')
     }
-  }else{card.classList.add('hidden')}
+  }else{card.style.display='none'}
 });
 document.getElementById('emptyState').style.display=v===0?'block':'none'}""")
     js.append("function limpiarBusqueda(){document.getElementById('searchInput').value='';obraActual='todas';document.querySelectorAll('.filter-pill').forEach(function(p){p.classList.remove('active')});document.querySelector('.filter-pill').classList.add('active');filtrar()}")
+    js.append("document.addEventListener('keydown',function(e){if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();document.getElementById('searchInput').focus()}});")
     return "\n".join(js)
 
 
@@ -265,11 +229,12 @@ def generar(proveedores):
             name = Path(pdf).stem.strip()
             obra = extraer_obra(name)
             url_enc = "/".join(quote(p, safe="") for p in url.split("/"))
+            icon = get_file_icon(pdf)
             items.append(
-                '<div class="pdf-item" onclick="abrirPDF(\'' + url_enc + '\',\'' + name.replace("'", "\\'") + '\',\'' + proveedor.replace("'", "\\'") + '\')" data-pdf="' + url_enc + '" data-obra="' + obra + '">'
-                '<div class="pdf-icon">' + get_file_icon(pdf) + '</div>'
+                '<a href="' + url_enc + '" target="_blank" class="pdf-item" data-obra="' + obra + '">'
+                '<div class="pdf-icon">' + icon + '</div>'
                 '<div class="pdf-info"><div class="pdf-name">' + name + '</div><div class="pdf-size">' + obra + '</div></div>'
-                '<div class="pdf-arrow">&#128196; Abrir</div></div>'
+                '<div class="pdf-arrow">&#128196; Abrir</div></a>'
             )
         ct = str(len(pdfs)) + " presupuesto" + ("s" if len(pdfs) != 1 else "")
         cards.append(
@@ -310,7 +275,6 @@ def generar(proveedores):
     h.append('.container{max-width:1100px;margin:24px auto;padding:0 40px 40px}')
     h.append('.proveedor-card{background:white;border-radius:14px;margin-bottom:16px;box-shadow:0 2px 12px rgba(0,0,0,.06);overflow:hidden;transition:box-shadow .3s}')
     h.append('.proveedor-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.1)}')
-    h.append('.proveedor-card.hidden{display:none}')
     h.append('.proveedor-header{display:flex;justify-content:space-between;align-items:center;padding:20px 24px;cursor:pointer;user-select:none;transition:background .2s}')
     h.append('.proveedor-header:hover{background:#f8f9fa}')
     h.append('.proveedor-left{display:flex;align-items:center;gap:16px}')
@@ -324,14 +288,12 @@ def generar(proveedores):
     h.append('.pdf-list{border-top:1px solid #eee;padding-top:12px}')
     h.append('.pdf-item{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:10px;text-decoration:none;color:inherit;transition:background .2s,transform .15s;margin-bottom:4px;cursor:pointer}')
     h.append('.pdf-item:hover{background:#fff8f0;transform:translateX(4px)}')
-    h.append('.pdf-item.active{background:#fff3e8;border:2px solid #D4742C;transform:translateX(6px)}')
     h.append('.pdf-icon{font-size:1.6rem;width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:#fee2e2;border-radius:10px;flex-shrink:0}')
-    h.append('.pdf-item.active .pdf-icon{background:#D4742C}')
     h.append('.pdf-info{flex:1;min-width:0}')
     h.append('.pdf-name{font-weight:600;font-size:.92rem;color:#2B3A4E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}')
     h.append('.pdf-size{font-size:.75rem;color:#999;margin-top:2px}')
-    h.append('.pdf-arrow{font-size:1.2rem;color:#D4742C;opacity:0;transition:opacity .2s;flex-shrink:0}')
-    h.append('.pdf-item:hover .pdf-arrow,.pdf-item.active .pdf-arrow{opacity:1}')
+    h.append('.pdf-arrow{font-size:1rem;color:#D4742C;opacity:0;transition:opacity .2s;flex-shrink:0;font-weight:600}')
+    h.append('.pdf-item:hover .pdf-arrow{opacity:1}')
     h.append('.toolbar{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}')
     h.append('.toolbar-btn{padding:10px 20px;border:2px solid #e0e0e0;border-radius:10px;background:white;font-size:.85rem;font-weight:600;color:#555;cursor:pointer;transition:all .2s}')
     h.append('.toolbar-btn:hover{border-color:#D4742C;color:#D4742C}')
@@ -340,23 +302,10 @@ def generar(proveedores):
     h.append('.filter-pill{padding:8px 18px;border:2px solid #e0e0e0;border-radius:20px;background:white;font-size:.82rem;font-weight:600;color:#555;cursor:pointer;transition:all .2s}')
     h.append('.filter-pill:hover{border-color:#D4742C;color:#D4742C}')
     h.append('.filter-pill.active{background:#D4742C;border-color:#D4742C;color:white}')
-    h.append('.pdf-item.obra-hidden{display:none !important}')
     h.append('.empty-state{text-align:center;padding:60px 20px;color:#999}')
     h.append('.empty-state .emoji{font-size:3rem;margin-bottom:12px}')
     h.append('.footer{text-align:center;padding:20px;color:#aaa;font-size:.75rem}')
-    h.append('#viewer-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:1000;animation:fadeIn .3s ease}')
-    h.append('#viewer-overlay.visible{display:flex;flex-direction:column}')
-    h.append('@keyframes fadeIn{from{opacity:0}to{opacity:1}}')
-    h.append('.viewer-bar{background:#2B3A4E;color:white;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}')
-    h.append('.viewer-title{font-size:.95rem;font-weight:600;display:flex;align-items:center;gap:10px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}')
-    h.append('.viewer-actions{display:flex;gap:10px;flex-shrink:0}')
-    h.append('.viewer-btn{padding:8px 16px;border-radius:8px;border:none;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px}')
-    h.append('.viewer-btn-close{background:#e74c3c;color:white}.viewer-btn-close:hover{background:#c0392b}')
-    h.append('.viewer-btn-external{background:#4ecdc4;color:#1a2533;text-decoration:none}.viewer-btn-external:hover{background:#45b7af}')
-    h.append('.viewer-btn-nav{background:rgba(255,255,255,.15);color:white}.viewer-btn-nav:hover{background:rgba(255,255,255,.25)}')
-    h.append('.viewer-btn-nav:disabled{opacity:.3;cursor:default}')
-    h.append('.viewer-frame{flex:1;border:none;background:#525659}')
-    h.append('@media(max-width:600px){.header{padding:20px}.header h1{font-size:1.3rem}.container,.search-bar{padding:0 16px}.viewer-bar{padding:10px 16px}.viewer-btn{padding:6px 10px;font-size:.8rem}}')
+    h.append('@media(max-width:600px){.header{padding:20px}.header h1{font-size:1.3rem}.container,.search-bar{padding:0 16px}}')
     h.append('</style>\n</head>\n<body>')
     h.append('<div class="header"><div class="header-content"><h1>&#128203; Presupuestos por Proveedor</h1><div class="header-stats">')
     h.append('<div class="stat"><div class="stat-value">' + str(total_p) + '</div><div class="stat-label">Proveedores</div></div>')
@@ -377,17 +326,6 @@ def generar(proveedores):
     h.append("\n".join(cards))
     h.append('</div><div class="empty-state" id="emptyState" style="display:none"><div class="emoji">&#128269;</div><p>No se encontraron resultados</p></div></div>')
     h.append('<div class="footer">Presupuestos Proveedores &middot; ECO STRUCT &middot; Generado automaticamente</div>')
-    h.append('<div id="viewer-overlay"><div class="viewer-bar"><div class="viewer-title">')
-    h.append('<span>&#128196;</span><span id="viewer-name">...</span>')
-    h.append('<span style="color:#8899aa;font-weight:400;font-size:.85rem">|</span>')
-    h.append('<span id="viewer-provider" style="color:#4ecdc4;font-weight:400;font-size:.85rem"></span></div>')
-    h.append('<div class="viewer-actions">')
-    h.append('<button class="viewer-btn viewer-btn-nav" id="btn-prev" onclick="navPDF(-1)" title="Anterior">&#9664; Ant</button>')
-    h.append('<span id="viewer-counter" style="color:#8899aa;font-size:.85rem;display:flex;align-items:center;min-width:40px;justify-content:center"></span>')
-    h.append('<button class="viewer-btn viewer-btn-nav" id="btn-next" onclick="navPDF(1)" title="Siguiente">Sig &#9654;</button>')
-    h.append('<a id="btn-external" href="#" target="_blank" class="viewer-btn viewer-btn-external" title="Abrir en pestana">&#128269; Pestana</a>')
-    h.append('<button class="viewer-btn viewer-btn-close" onclick="cerrarPDF()" title="Cerrar">&times; Cerrar</button>')
-    h.append('</div></div><iframe id="viewer-frame" class="viewer-frame"></iframe></div>')
     h.append('<script>\n' + js + '\n</script>\n</body>\n</html>')
     return "\n".join(h)
 
